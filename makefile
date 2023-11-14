@@ -1,17 +1,32 @@
 PROJECT = train
 CC = gcc
-CFLAGS += -DDEBUG_MODE
+BASECFLAGS += -DDEBUG_MODE
 MODULE0 := base
-SRCPATH = ./src/$(MODULE0)/
-INCLUDEPATH = ./include/$(MODULE0)/
-SRCLIST = $(wildcard $(SRCPATH)/*.c)
-OBJECTLIST = $(patsubst $(SRCPATH)/%.c,%.o,$(SRCLIST))
+MODULE1 := system
+BASEINCLUDEPATH := ./include/$(MODULE0)/
+SYSTEMINCLUDEPATH := ./include/$(MODULE1)/
+INCLUDEPATH = $(BASEINCLUDEPATH) $(SYSTEMINCLUDEPATH) 
+BASESRCPATH = ./src/$(MODULE0)/
+SYSTEMSRCPATH = ./src/$(MODULE1)/
+SRCLIST += $(wildcard $(BASESRCPATH)/*.c)
+SRCLIST += $(wildcard $(SYSTEMSRCPATH)/*.c)
+SRCFILE = $(notdir $(SRCLIST))
+OBJECTLIST = $(SRCFILE:.c=.o)
+
 BINDIR = ./bin
 BINPATH = $(pwd)/bin/
-%.o:$(SRCPATH)/%.c
-	$(CC) $(CFLAGS) -c $< -I$(INCLUDEPATH) -MD -MF $(PROJECT).d
+
+%.o:$(BASESRCPATH)/%.c
+	$(CC) $(BASECFLAGS) -c $< -I$(BASEINCLUDEPATH) -MD -MF $(PROJECT).d
+%.o:$(SYSTEMSRCPATH)/%.c
+	$(CC) -c $< -I$(SYSTEMINCLUDEPATH) -I$(BASEINCLUDEPATH) -MD -MF $(PROJECT).d
+
 $(PROJECT):$(OBJECTLIST)
-	$(CC) -o $@ $^	
+	$(CC) -o $@ $^
+
+list:
+	@echo "IncludePath:$(INCLUDEPATH)"
+	@echo "SrcList:$(SRCFILE)"
 build:
 	@echo "the project is built..."
 	@sudo mkdir -p $(BINDIR)
