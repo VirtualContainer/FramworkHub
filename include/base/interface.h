@@ -1,5 +1,5 @@
-#ifndef TEST_H
-#define TEST_H
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #include"link.h"
 #include"hash.h"
