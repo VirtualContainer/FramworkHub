@@ -2,6 +2,19 @@
 #define BIT_H
 #include"base.h"
 
+typedef bool bit;
+
+extern void Bitcopy(bit* Data_out, bit* Data_in, const int Num);
+extern void Change_bit(bit* Data_out, const int BitNum);
+extern void ByteToBit(bit* Data_out, char* Data_in, const int Num);
+extern void BitToByte(char message_out[8], bit* Message_in, int Num); 
+extern void HexToBit(bit* Data_out, char* Data_in, const int Num);
+extern void BitToHex(char* Data_out, bit* Data_in, const int Num);
+extern void Loop_bit(bit* Data_out, int movstep, const int len);
+extern void Xor(bit* Message_out, bit* Message_in, const int Num);
+extern void Add(bit* Message_out, bit* Message_in, const int Num);
+
+
 
 #define PERWORDLENGTH 32
 
@@ -63,6 +76,7 @@ static inline void ClearBitMask(void* start_addr,unsigned int index){
     counts;\
 }\
 )
+
 
 #define MaxCommonAddressPrefix(type,addr1,addr2,unit_size)(\
 {\
