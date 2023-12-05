@@ -1,4 +1,4 @@
-#include"test.h"
+#include"interface.h"
 #include"bit.h"
 
 #define node_mask 0x1
@@ -28,11 +28,12 @@ int main(int argc,char* argv[]){
     container_test(copyptr_container);
     if(t_container.tag)
        printf("\033[32;1mDEBUG:\033[0mCopy container successfully\n");
-  */
+  
     RadixTree root;
     BuildRadixTree(&root,4,8);    
     struct Item* item = (struct Item*)malloc(sizeof(struct Item));
-    MountRadixTreeItem(&root,0x0000000f,item);
+    MountRadixTreeItem(&root,0x10000000,item);
     MountRadixTreeItem(&root,0x00000000,item);
+  */
     return 0;
 }
