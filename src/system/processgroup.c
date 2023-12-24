@@ -17,7 +17,7 @@
 #define USER_CPU(GroupName) \
 (\
 {\
-    char dir[32]; \
+    char dir[64]; \
     snprintf(dir,sizeof(dir),"%s%s",SYSTEM_CPU,GroupName); \
     dir; \
 }\
@@ -25,7 +25,7 @@
 #define USER_MEMORY(GroupName) \
 (\
 {\
-    char dir[32]; \
+    char dir[64]; \
     snprintf(dir,sizeof(dir),"%s%s",SYSTEM_MEMORY,GroupName); \
     dir; \
 }\
@@ -33,7 +33,7 @@
 #define USER_IO(GroupName) \
 (\
 {\
-    char dir[32]; \
+    char dir[64]; \
     snprintf(dir,sizeof(dir),"%s%s",SYSTEM_IO,GroupName); \
     dir; \
 }\
@@ -47,6 +47,34 @@
 }\
 )
 
+typedef bool (*ResourceConfig)(const char*,const unsigned int);
+
+static struct Process* LocalRootProcess = NULL;
+static ResourceConfig SystemConfigs[MaxResourceItem];
+
+#define CreateShareZone(share_type,share_obj,key)\
+(\
+{\
+    static_assert(__builtin_types_compatible_p(typeof(*share_obj), share_type), "TypeMismatch");\
+    int share_id = shmget(key,sizeof(share_type),IPC_CREAT|0660);\
+    if(share_id == ERROR)\
+        share_obj = NULL;\
+    else\
+        share_obj = (share_type*)shmat(share_id,NULL,0);\
+    share_obj;\
+}\
+)
+
+static struct Process* LoadRootProcess()
+{   
+    if(!LocalRootProcess)
+    {
+        key_t key = ftok(".",getpid());
+        CreateShareZone(struct Process,LocalRootProcess,key);
+    }
+    return LocalRootProcess;    
+}
+
 static bool InitProcessGroup(struct ProcessGroup* group)
 {
     int value = mkdir(USER_CPU(group->m_Name),755);
@@ -54,30 +82,6 @@ static bool InitProcessGroup(struct ProcessGroup* group)
         return false;
     return true;    
 }
-
-static bool InitRootProcess(struct ProcessGroup* group,struct Process* root)
-{
-    strcpy(root->ProcessName,"Root");
-    char* current_path = getcwd(NULL,0);
-    strcpy(root->BinPath,current_path);
-    root->ProcessId = (unsigned int)getpid();
-    root->State = Init;
-    InitLinklist(&root->Link);
-    char task_dir[64];
-    snprintf(task_dir,sizeof(task_dir),"%s/tasks",USER_CPU(group->m_Name));
-    FILE* task = fopen(task_dir,"w");
-    if(!task)
-        return false;
-    fprintf(task,"%u",root->ProcessId);    
-    fclose(task);
-    task = NULL;
-    /*设置当前root进程可以被追踪*/
-    long value = ptrace(PTRACE_TRACEME,0,NULL,NULL);
-    if(value==ERROR)
-        return false;    
-    return true;
-}
-
 
 static bool CPUConfig(const char* dir,const unsigned int quota)
 {
@@ -136,7 +140,6 @@ static bool WriteStreamConfig(const char* dir,const unsigned int bandwidth)
     return true;    
 }
 
-typedef bool (*ResourceConfig)(const char*,const unsigned int);
 static bool SetSystemResource(struct ProcessGroup* group,struct SystemResource* resource)
 {
     char* cpu_dir = USER_CPU(group->m_Name);
@@ -145,7 +148,7 @@ static bool SetSystemResource(struct ProcessGroup* group,struct SystemResource* 
     char* writestream_dir = USER_IO(group->m_Name);
     char* config_dirs[] = {cpu_dir,memory_dir,readstream_dir,writestream_dir};
     unsigned int* data_list = &resource->CpuQuota;
-    ResourceConfig SystemConfigs[MaxResourceItem];
+   
     int index;
     for(index=0;index<MaxResourceItem;index++)
         SystemConfigs[index] = NULL;
@@ -166,15 +169,27 @@ static bool SetSystemResource(struct ProcessGroup* group,struct SystemResource* 
     return value;
 }
 
-void CreateProcessGroup(struct ProcessGroup* group,const char* name,struct SystemResource* quota)
+static bool InitRootProcess(struct ProcessGroup* group,struct Process* root)
 {
-    strcpy(group->m_Name,name);
-    group->m_Id = (unsigned int)getppid();
-    if(!InitProcessGroup(group))
-        return;
-    group->m_ProcessNum = 1;
-    InitRootProcess(group,&group->m_RootProcess);
+    strcpy(root->ProcessName,"Root");
+    char* current_path = getcwd(NULL,0);
+    strcpy(root->BinPath,current_path);
+    root->ProcessId = (unsigned int)getpid();
+    root->State = Init;
+    InitLinklist(&group->m_Link);
+    char task_dir[64];
+    snprintf(task_dir,sizeof(task_dir),"%s/tasks",USER_CPU(group->m_Name));
+    FILE* task = fopen(task_dir,"w");
+    if(!task)
+        return false;
+    fprintf(task,"%u",root->ProcessId);    
+    fclose(task);
+    task = NULL;
+    group->m_RootProcess->Node.data = (int)getpid();
+    AddLinklistnodeTail(&group->m_Link,&(group->m_RootProcess->Node));  
+    return true;
 }
+
 
 void SetGroupResource(struct ProcessGroup* group,unsigned int cpu,unsigned int memory,unsigned int io)
 {
@@ -185,27 +200,75 @@ void SetGroupResource(struct ProcessGroup* group,unsigned int cpu,unsigned int m
     SetSystemResource(group,&group->m_SystemResource);
 }
 
-
-void AddProcess(struct ProcessGroup* group)
+void CreateProcessGroup(const char* name,struct SystemResource* quota)
 {
-    key_t key = ftok(group->m_RootProcess.BinPath,group->m_ProcessNum);    
-    struct Process* NewProcess = NULL;
-    int share_id;
-    share_id = shmget(key,sizeof(struct Process),660);
-    if(share_id==ERROR)
+    if(!LoadRootProcess())
         return;
-    NewProcess = (struct Process*)shmat(share_id,NULL,0);   
-
+    struct ProcessGroup* group;
+    group->m_RootProcess = LoadRootProcess();
+    InitRootProcess(group,group->m_RootProcess);
+    key_t key = ftok(".",getppid());
+    CreateShareZone(typeof(*group),group,key);
+    strcpy(group->m_Name,name);
+    group->m_Id = (unsigned int)getppid();
+    if(!InitProcessGroup(group))
+        return;
+    group->m_ProcessNum = 1;
 }
 
-void SetCurrentProcess(const char* name)
-{
-    struct Process* current;
-    GetCurrentProcess(current);
-
+static struct Process* AddProcess(struct ProcessGroup* group,const char* path,const pid_t id)
+{    
+    
+    struct Process* NewProcess = NULL;
+    key_t key = ftok(path,id);
+    NewProcess = CreateShareZone(struct Process,NewProcess,key);
+    NewProcess->Node.data = id;
+    AddLinklistnodeTail(&group->m_Link,&NewProcess->Node);
+    NewProcess->State = Init;
+    return NewProcess;
 }
 
-void GetCurrentProcess(struct Process* current)
+void JoinProcessGroup(struct ProcessGroup* group,const char* name,const char* path,const char* cmd)
 {
+    while(getpid()==group->m_RootProcess->ProcessId)
+    {
+        struct Process* NewProcess;
+        int ChildID = fork();
+        if(ChildID==ERROR)
+            break;
+        else if(ChildID==0)
+        {
+            while(!NewProcess);                
+            /*执行子进程的任务*/
+            system(NewProcess->Cmd);
+        }
+        else
+        {
+            NewProcess = AddProcess(group,path,ChildID);
+            NewProcess->State = Ready;
+            NewProcess->ProcessId = ChildID;
+            strcpy(NewProcess->ProcessName,name);
+            strcpy(NewProcess->BinPath,path);
+            strcpy(NewProcess->Cmd,cmd);
+            #ifdef EnableTraced
+               ptrace(PTRACE_ATTACH,ChildID,NULL,NULL); 
+            #endif
+        }
+        break;    
+    }
+}
 
+void ExitProcessGroup(struct ProcessGroup* group)
+{
+    
+}
+
+struct Process* GetCurrentProcess(struct ProcessGroup* group)
+{
+    if(!LocalRootProcess)
+        return NULL;
+    const int key = getpid();
+    linklist_node* target;
+    SearchLinklistnode(&group->m_Link,&target,key);
+    return LinkedHost(struct Process,Node,target);        
 }

@@ -36,7 +36,8 @@ void AddLinklistnodeIndex(linklist list,linklist_node* node,unsigned int index){
      list->s_num++;
 }
 
-void DeleteLinklistnode(linklist list,linklist_node* node){
+void DeleteLinklistnode(linklist list,linklist_node* node)
+{
      if(!list->s_num)
         return;
      linklist_node* ptr=list->s_headnode->next;
@@ -51,5 +52,22 @@ void DeleteLinklistnode(linklist list,linklist_node* node){
                return;
           }
           ptr=ptr->next;
+     }          
+}
+
+void SearchLinklistnode(linklist list,linklist_node** node,const int key)
+{
+     *node = NULL;
+     if(!list->s_num)
+          return;
+     linklist_node* ptr=list->s_headnode->next;
+     while(ptr!=list->s_headnode)
+     {
+          if(ptr->data==key)
+          {
+               node = &ptr;
+               break;    
+          }
+          ptr=ptr->next;              
      }          
 }
