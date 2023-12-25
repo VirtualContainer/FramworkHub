@@ -210,7 +210,7 @@ void CreateProcessGroup(const char* name,struct SystemResource* quota)
     key_t key = ftok(".",getppid());
     CreateShareZone(typeof(*group),group,key);
     strcpy(group->m_Name,name);
-    group->m_Id = (unsigned int)getppid();
+    group->m_Id = (unsigned int)getpgid(getpid());
     if(!InitProcessGroup(group))
         return;
     group->m_ProcessNum = 1;
@@ -258,9 +258,17 @@ void JoinProcessGroup(struct ProcessGroup* group,const char* name,const char* pa
     }
 }
 
-void ExitProcessGroup(struct ProcessGroup* group)
+void ExitProcessGroup(struct ProcessGroup* group,struct Process* process)
 {
-    
+    while(getpid()==group->m_RootProcess->ProcessId)
+    {
+        if(group->m_Id!=getpgid((pid_t)process->ProcessId))
+            break;
+        int value = setpgid(process->ProcessId,0);
+        if(value==ERROR)
+            break;
+        break;        
+    }
 }
 
 struct Process* GetCurrentProcess(struct ProcessGroup* group)
@@ -271,4 +279,13 @@ struct Process* GetCurrentProcess(struct ProcessGroup* group)
     linklist_node* target;
     SearchLinklistnode(&group->m_Link,&target,key);
     return LinkedHost(struct Process,Node,target);        
+}
+
+bool IsLinearProcessGroup(struct Process* process1,struct Process* process2)
+{
+    pid_t group_id1 = getpgid((pid_t)process1->ProcessId);
+    pid_t group_id2 = getpgid((pid_t)process2->ProcessId);
+    if(group_id1==group_id2)
+        return true;
+    return false;    
 }
