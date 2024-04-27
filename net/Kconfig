@@ -1,0 +1,206 @@
+mainmenu "Virtual Net Configuration Menu"
+
+choice
+    prompt "ISA"
+    default ISA_x64
+config ISA_x64
+    bool "x64"
+config ISA_arm
+    bool "arm"    
+endchoice
+
+config DEBUG_OPTION
+    bool "Enable Debug Option"
+    default y
+    help
+        Enable gdb trace and logger 
+
+config SUPPORT_AI_OPTION
+    bool "Enable Support AI Agent"
+    default n
+
+config SUPPORT_EBPF_OPTION
+    bool "Enable Support Ebpf"
+    default y
+
+config NET_NIC_NUM
+    int "Virtual NIC Number"
+    range 1 4
+    help
+        This is an integer type(1-4)
+        
+menu "Virtual NIC Configure"
+    depends on NET_NIC_NUM>0
+config NIC0_NAME
+    string "Name For NIC0"
+    default "vNIC0"
+config NIC0_IP
+    string "IP Address For NIC0"
+    default "192.168.0.1"
+config NIC0_MAC
+    string "MAC Address For NIC0"
+    default "00:00:00:00:00:00"
+menu "----------------Separator---------------------"
+    depends on NET_NIC_NUM>1 
+endmenu
+config NIC1_NAME
+    string "Name For NIC1"
+    default "vNIC1"
+    depends on NET_NIC_NUM>1
+config NIC1_IP
+    string "IP Address For NIC1"
+    default "192.168.0.2"
+    depends on NET_NIC_NUM>1
+config NIC1_MAC
+    string "MAC Address For NIC0"
+    default "00:00:00:00:00:00"
+    depends on NET_NIC_NUM>1
+menu "----------------Separator---------------------"
+    depends on NET_NIC_NUM>2
+endmenu
+config NIC2_NAME
+    string "Name For NIC2"
+    default "vNIC2"
+    depends on NET_NIC_NUM>2
+config NIC2_IP
+    string "IP Address For NIC2"
+    default "192.168.0.3"
+    depends on NET_NIC_NUM>2
+config NIC2_MAC
+    string "MAC Address For NIC2"
+    default "00:00:00:00:00:00"
+    depends on NET_NIC_NUM>2
+menu "----------------Separator---------------------"
+    depends on NET_NIC_NUM>3
+endmenu
+config NIC3_NAME
+    string "Name For NIC3"
+    default "vNIC3"
+    depends on NET_NIC_NUM>3
+config NIC3_IP
+    string "IP Address For NIC3"
+    default "192.168.0.4"
+    depends on NET_NIC_NUM>3
+config NIC3_MAC
+    string "MAC Address For NIC3"
+    default "00:00:00:00:00:00"
+    depends on NET_NIC_NUM>3        
+endmenu
+
+menu "Network Packet Configure"
+config PACKET_BLOCK_SIZE
+    int "Packet Block Size(byte)"
+    default 1024
+config PACKET_BLOCK_NUM
+    int "Packet Block Num"
+    default 1024
+config PACKET_BUFFER_NUM
+    int "Packet Buffer Num"
+    default 1024
+endmenu            
+
+menu "Network Adapter Configure"
+config HAL
+    int "Hardware Address Length"
+    default 6
+config ENABLE_IRQ
+    bool "Enable IRQ"
+    default y
+    help
+        Whether enable interrupt protection
+config NIC_DEV_NUM
+    int "NIC Dev Num"
+    default 2
+config INPUT_QUEUE_CAPACITY
+    int "Input Queue Capacity"
+    default 64
+config OUTPUT_QUEUE_CAPACITY
+    int "Output Queue Capacity"
+    default 64    
+endmenu 
+
+menu "Data Link Layer Configure"
+config ARP_ITEM_SIZE
+    int "ARP Table Item Size"
+    default 16
+config ARP_RESOLVED_PARSE_TIMEOUT
+    int "ARP Resolved Parse Timeout(s)"
+    default 960
+config ARP_PENDING_PARSE_TIMEOUT
+    int "ARP Pending Parse Timeout(s)"
+    default 1
+config ARP_PARSE_RETRY_TIMES
+    int "ARP Parse Retry Times"
+    default 4
+config ARP_SCANNER_PERIOD
+    int "ARP Scanning Period(s)"
+    default 240            
+endmenu
+
+menu "IP Layer Configure"
+config IP_TABLE_NUM
+    int "IP Table Num"
+    default 16
+config ENABLE_SUPPORT_IPFRAG
+    bool "Enable Support Ip Fragment"
+    default y
+config MAX_IPFRAG_NUM
+    int "Max IP Fragment Num"
+    depends on ENABLE_SUPPORT_IPFRAG
+    default 4
+config IPFRAG_SCANNING_PERIOD
+    int "IP Fragment Scanning Period(s)"
+    depends on ENABLE_SUPPORT_IPFRAG
+    default 1
+config IPFRAG_TIMEOUT
+    int "IP Fragment Timeout(s)"
+    depends on ENABLE_SUPPORT_IPFRAG
+    default 4
+config IPFRAG_PACKET_STAGNATION_NUM
+    int "IP Fragment Packet Stagnation Num"
+    depends on ENABLE_SUPPORT_IPFRAG
+    default 8                      
+endmenu
+
+menu "Transport Layer Configure"
+menu "UDP Layer Configure"
+config MAX_UPDSOCKET_CONNUM
+    int "Max Udp Socket Control Num"
+    default 8
+config MAX_UDPPACKET_RECVNUM
+    int "Max Udp Packet Receive Num"
+    default 64
+endmenu
+menu "TCP Layer Configure"
+config MAX_TCPSOCKET_CONNUM
+    int "Max Tcp Socket Control Num"
+    default 8
+config TCP_SENDBUF_SIZE
+    int "TCP Send Buffer Size(byte)"
+    default 8096
+config TCP_RECVBUF_SIZE
+    int "TCP Receive Buffer Size(byte)"
+    default 8096
+config TCP_INIT_TIMEOUT
+    int "Tcp Init Connect Timeout(ms)"
+    default 4000    
+config TCP_SYN_RETRIES
+    int "Max TCP SYN Retries"
+    default 4
+config TCP_RESEND_MAXTIMEOUT
+    int "Tcp ReSend Max Timeout(ms)"
+    default 60000
+config TCP_SEND_TIMEOOUT
+    int "Tcp Send Packet Timeout(ms)"
+    default 2000
+endmenu
+endmenu
+
+menu "Netfilter Configure"
+endmenu
+
+menu "Timer Configure"
+endmenu
+
+menu "Interrupt Configure"
+endmenu

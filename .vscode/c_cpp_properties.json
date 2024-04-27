@@ -2,8 +2,15 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/include"
+            "includePath": 
+            [
+                "${workspaceFolder}",
+                "${workspaceFolder}/platform/include/util/",
+                "${workspaceFolder}/platform/include/system/",
+                "${workspaceFolder}/platform/include/safety/",
+                "${workspaceFolder}/platform/init/",
+                "${workspaceFolder}/net/include/pcap",
+                "${workspaceFolder}/net/include/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -1,6 +1,16 @@
 {
     "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
-        "unordered_map": "c"
+        "unordered_map": "c",
+        "stdio.h": "c",
+        "hash_map": "c",
+        "hash_set": "c",
+        "groups.h": "c",
+        "stat.h": "c",
+        "ptrace.h": "c",
+        "directionary.h": "c",
+        "ratio": "c",
+        "lock.h": "c",
+        "semaphore.h": "c"
     }
 }
